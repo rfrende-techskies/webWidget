@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Micrófono</title>
+</head>
+<body>
+  <h1>🎤 Acceso al Micrófono</h1>
+  <button id="start">🎙️ Comenzar grabación</button>
+  <button id="stop" disabled>⏹️ Detener</button>
+  <p id="status">Esperando permiso...</p>
+  <audio id="player" controls></audio>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const status = document.getElementById('status');
+    const player = document.getElementById('player');
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks);
+        const url = URL.createObjectURL(blob);
+        player.src = url;
+        status.textContent = '🎧 Grabación lista';
+      };
+
+      mediaRecorder.start();
+      status.textContent = '🎙️ Grabando...';
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+    };
+  </script>
+</body>
+</html> 
