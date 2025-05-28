@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test Micrófono</title>
+  <title>Test Micrófono con Debug</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 20px;
-      background: #f2f2f2;
+      background: #f9f9f9;
       color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      box-sizing: border-box;
     }
 
     h1 {
@@ -35,18 +34,15 @@
       color: white;
       font-size: 16px;
       cursor: pointer;
-      transition: background 0.2s ease;
     }
 
     button:disabled {
       background-color: #a6a6a6;
-      cursor: not-allowed;
     }
 
     #status {
       margin-top: 10px;
       font-size: 1em;
-      color: #666;
     }
 
     audio {
@@ -55,10 +51,17 @@
       max-width: 400px;
     }
 
-    @media (min-width: 600px) {
-      body {
-        padding: 40px;
-      }
+    #debug {
+      margin-top: 20px;
+      background: #eee;
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 13px;
+      width: 100%;
+      max-width: 400px;
     }
   </style>
 </head>
@@ -69,6 +72,8 @@
   <p id="status">Esperando permiso...</p>
   <audio id="player" controls></audio>
 
+  <div id="debug">🧠 <strong>Logs:</strong></div>
+
   <script>
     let mediaRecorder;
     let audioChunks = [];
@@ -77,50 +82,58 @@
     const stopBtn = document.getElementById('stop');
     const status = document.getElementById('status');
     const player = document.getElementById('player');
+    const debugBox = document.getElementById('debug');
+
+    const debugLog = (msg) => {
+      debugBox.innerHTML += `<div>• ${msg}</div>`;
+      debugBox.scrollTop = debugBox.scrollHeight;
+    };
 
     startBtn.onclick = async () => {
+      debugLog('🔄 Solicitando acceso al micrófono...');
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'audio/mp4'
-        });
+        debugLog('✅ Acceso al micrófono concedido.');
 
         if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          debugLog('🎧 Usando formato: audio/mp4');
           mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
         } else {
-          mediaRecorder = new MediaRecorder(stream); 
-          console.log('se tiro un error');
+          debugLog('⚠️ audio/mp4 no soportado. Usando por defecto.');
+          mediaRecorder = new MediaRecorder(stream);
         }
+
         audioChunks = [];
 
         mediaRecorder.ondataavailable = event => {
           if (event.data.size > 0) {
             audioChunks.push(event.data);
+            debugLog(`📦 Chunk recibido: ${event.data.size} bytes`);
           }
         };
 
         mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
           const url = URL.createObjectURL(blob);
-          console.log("Tipo de blob:", blob.type);
-          console.log("Tamaño del blob:", blob.size);
-
           player.src = url;
           player.load();
           status.textContent = '🎧 Grabación lista';
+          debugLog(`✅ Blob final - tipo: ${blob.type}, tamaño: ${blob.size}`);
         };
 
         mediaRecorder.start();
         status.textContent = '🎙️ Grabando...';
+        debugLog('🔴 Grabación iniciada');
         startBtn.disabled = true;
         stopBtn.disabled = false;
       } catch (error) {
+        debugLog(`❌ Error: ${error.message}`);
         status.textContent = '❌ Error al acceder al micrófono.';
-        console.error(error);
       }
     };
 
     stopBtn.onclick = () => {
+      debugLog('⏹️ Deteniendo grabación...');
       mediaRecorder.stop();
       stopBtn.disabled = true;
       startBtn.disabled = false;
