@@ -31,10 +31,11 @@
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunks);
+     mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         player.src = url;
+        player.load();
         status.textContent = '🎧 Grabación lista';
       };
 
