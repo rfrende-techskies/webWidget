@@ -81,7 +81,16 @@
     startBtn.onclick = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/mp4'
+        });
+
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
+        } else {
+          mediaRecorder = new MediaRecorder(stream); 
+          console.log('se tiro un error');
+        }
         audioChunks = [];
 
         mediaRecorder.ondataavailable = event => {
@@ -93,6 +102,9 @@
         mediaRecorder.onstop = () => {
           const blob = new Blob(audioChunks, { type: 'audio/webm' });
           const url = URL.createObjectURL(blob);
+          console.log("Tipo de blob:", blob.type);
+          console.log("Tamaño del blob:", blob.size);
+
           player.src = url;
           player.load();
           status.textContent = '🎧 Grabación lista';
