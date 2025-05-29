@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test Micrófono y Cámara</title>
+  <title>Micrófono + Cámara (WebView Safe)</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -20,7 +20,7 @@
 
     h1 {
       font-size: 1.6em;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       text-align: center;
     }
 
@@ -39,20 +39,30 @@
       background-color: #bbb;
     }
 
-    #status {
-      margin: 10px 0;
-      font-size: 1em;
-    }
-
-    audio, video, canvas, img {
+    audio, img {
       margin-top: 15px;
       width: 100%;
       max-width: 400px;
       border-radius: 8px;
     }
 
+    #status {
+      margin: 10px 0;
+      font-size: 1em;
+      text-align: center;
+    }
+
+    #preview {
+      margin-top: 15px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      object-fit: contain;
+    }
+
     #debug {
-      margin-top: 20px;
+      margin-top: 25px;
       background: #eee;
       border-radius: 6px;
       padding: 10px;
@@ -63,28 +73,25 @@
       width: 100%;
       max-width: 400px;
     }
+
+    input[type="file"] {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>🎙️ Micrófono + 📷 Cámara</h1>
+  <h1>🎙️ Grabación de Audio</h1>
 
-  <button id="startMic">🎙️ Grabar Audio</button>
+  <button id="startMic">🎙️ Iniciar</button>
   <button id="stopMic" disabled>⏹️ Detener</button>
   <p id="status">Esperando acción...</p>
   <audio id="audioPlayer" controls></audio>
 
   <hr style="margin: 30px 0; width: 100%; max-width: 400px;" />
 
-  <video id="video" autoplay playsinline></video>
-  <button id="takePhoto">📸 Tomar Foto</button>
-  <canvas id="canvas" style="display: none;"></canvas>
-  <img id="photo" alt="Foto tomada" />
-  <a id="downloadLink" style="display: none;" download="foto.png">⬇️ Descargar foto</a>
-
-  <h1>📷 Cámara nativa + input </h1>
+  <h1>📷 Selección de Foto</h1>
   <input type="file" accept="image/*" capture="environment" id="fileInput" />
-  <img id="preview" style="max-width: 100%; margin-top: 10px;" />
-
+  <img id="preview" alt="Imagen seleccionada" />
 
   <div id="debug">🧠 <strong>Logs:</strong></div>
 
@@ -128,6 +135,7 @@
         stopMic.disabled = false;
       } catch (err) {
         debugLog('❌ Error al acceder al micrófono: ' + err.message);
+        status.textContent = '⚠️ Error de micrófono.';
       }
     };
 
@@ -138,59 +146,19 @@
       debugLog('⏹️ Grabación detenida.');
     };
 
-    // 📷 CÁMARA
-      const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const photo = document.getElementById('photo');
-  const takePhoto = document.getElementById('takePhoto');
-  const downloadLink = document.getElementById('downloadLink');
-
-  debugLog('📸 Intentando acceder a la cámara...');
-  console.log('📸 Solicitud de cámara iniciada...');
-
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      console.log('✅ Cámara activada, stream obtenido:', stream);
-      debugLog('✅ Cámara activada.');
-      video.srcObject = stream;
-    })
-    .catch(error => {
-      console.log('❌ Error al acceder a la cámara:', error);
-      debugLog(`❌ Error al acceder a la cámara: ${error.name} - ${error.message}`);
+    // 📷 INPUT DE IMAGEN
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        const img = document.getElementById('preview');
+        img.src = url;
+        img.style.display = 'block';
+        debugLog('📷 Imagen cargada correctamente.');
+      } else {
+        debugLog('⚠️ No se seleccionó ninguna imagen.');
+      }
     });
-
-  takePhoto.onclick = () => {
-    try {
-      const context = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      console.log('🖼 Tomando foto con dimensiones:', canvas.width, 'x', canvas.height);
-
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/png');
-      photo.src = dataUrl;
-      downloadLink.href = dataUrl;
-      downloadLink.style.display = 'inline-block';
-      debugLog('📸 Foto tomada.');
-      console.log('📷 Foto generada y asignada como src.');
-    } catch (e) {
-      console.log('❌ Error al tomar la foto:', e);
-      debugLog(`❌ Error al tomar la foto: ${e.message}`);
-    }
-  };
-  // segunda opcion, input + acceso galeria 
-  document.getElementById('fileInput').addEventListener('change', function (event) {
-  const file = event.target.files[0];
-  if (file) {
-    const url = URL.createObjectURL(file);
-    document.getElementById('preview').src = url;
-    debugLog('📷 Imagen cargada desde el dispositivo.');
-  } else {
-    debugLog('⚠️ No se seleccionó ninguna imagen.');
-  }
-});
-
   </script>
 </body>
 </html>
