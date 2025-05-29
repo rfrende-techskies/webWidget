@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test Micrófono con Debug</title>
+  <title>Test Micrófono y Cámara</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -14,14 +14,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
     }
 
     h1 {
-      font-size: 1.8em;
+      font-size: 1.6em;
       margin-bottom: 20px;
-      color: #222;
       text-align: center;
     }
 
@@ -37,18 +36,19 @@
     }
 
     button:disabled {
-      background-color: #a6a6a6;
+      background-color: #bbb;
     }
 
     #status {
-      margin-top: 10px;
+      margin: 10px 0;
       font-size: 1em;
     }
 
-    audio {
-      margin-top: 20px;
+    audio, video, canvas, img {
+      margin-top: 15px;
       width: 100%;
       max-width: 400px;
+      border-radius: 8px;
     }
 
     #debug {
@@ -66,77 +66,99 @@
   </style>
 </head>
 <body>
-  <h1>🎤 Acceso al Micrófono</h1>
-  <button id="start">🎙️ Comenzar grabación</button>
-  <button id="stop" disabled>⏹️ Detener</button>
-  <p id="status">Esperando permiso...</p>
-  <audio id="player" controls></audio>
+  <h1>🎙️ Micrófono + 📷 Cámara</h1>
+
+  <button id="startMic">🎙️ Grabar Audio</button>
+  <button id="stopMic" disabled>⏹️ Detener</button>
+  <p id="status">Esperando acción...</p>
+  <audio id="audioPlayer" controls></audio>
+
+  <hr style="margin: 30px 0; width: 100%; max-width: 400px;" />
+
+  <video id="video" autoplay playsinline></video>
+  <button id="takePhoto">📸 Tomar Foto</button>
+  <canvas id="canvas" style="display: none;"></canvas>
+  <img id="photo" alt="Foto tomada" />
+  <a id="downloadLink" style="display: none;" download="foto.png">⬇️ Descargar foto</a>
 
   <div id="debug">🧠 <strong>Logs:</strong></div>
 
   <script>
-    let mediaRecorder;
-    let audioChunks = [];
-
-    const startBtn = document.getElementById('start');
-    const stopBtn = document.getElementById('stop');
-    const status = document.getElementById('status');
-    const player = document.getElementById('player');
     const debugBox = document.getElementById('debug');
-
-    const debugLog = (msg) => {
+    const debugLog = msg => {
       debugBox.innerHTML += `<div>• ${msg}</div>`;
       debugBox.scrollTop = debugBox.scrollHeight;
     };
 
-    startBtn.onclick = async () => {
-      debugLog('🔄 Solicitando acceso al micrófono...');
+    // 🎙️ AUDIO
+    let mediaRecorder, audioChunks = [];
+    const startMic = document.getElementById('startMic');
+    const stopMic = document.getElementById('stopMic');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const status = document.getElementById('status');
+
+    startMic.onclick = async () => {
+      debugLog('🎙️ Solicitando acceso al micrófono...');
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        debugLog('✅ Acceso al micrófono concedido.');
-
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          debugLog('🎧 Usando formato: audio/mp4');
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
-        } else {
-          debugLog('⚠️ audio/mp4 no soportado. Usando por defecto.');
-          mediaRecorder = new MediaRecorder(stream);
-        }
+        debugLog('✅ Micrófono activo.');
 
         audioChunks = [];
-
-        mediaRecorder.ondataavailable = event => {
-          if (event.data.size > 0) {
-            audioChunks.push(event.data);
-            debugLog(`📦 Chunk recibido: ${event.data.size} bytes`);
-          }
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
         };
-
         mediaRecorder.onstop = () => {
           const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
           const url = URL.createObjectURL(blob);
-          player.src = url;
-          player.load();
-          status.textContent = '🎧 Grabación lista';
-          debugLog(`✅ Blob final - tipo: ${blob.type}, tamaño: ${blob.size}`);
+          audioPlayer.src = url;
+          audioPlayer.load();
+          debugLog(`📦 Audio listo. Tipo: ${blob.type}, Tamaño: ${blob.size}`);
+          status.textContent = '🎧 Audio grabado.';
         };
 
         mediaRecorder.start();
-        status.textContent = '🎙️ Grabando...';
-        debugLog('🔴 Grabación iniciada');
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (error) {
-        debugLog(`❌ Error: ${error.message}`);
-        status.textContent = '❌ Error al acceder al micrófono.';
+        status.textContent = '🔴 Grabando audio...';
+        startMic.disabled = true;
+        stopMic.disabled = false;
+      } catch (err) {
+        debugLog('❌ Error al acceder al micrófono: ' + err.message);
       }
     };
 
-    stopBtn.onclick = () => {
-      debugLog('⏹️ Deteniendo grabación...');
+    stopMic.onclick = () => {
       mediaRecorder.stop();
-      stopBtn.disabled = true;
-      startBtn.disabled = false;
+      startMic.disabled = false;
+      stopMic.disabled = true;
+      debugLog('⏹️ Grabación detenida.');
+    };
+
+    // 📷 CÁMARA
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const takePhoto = document.getElementById('takePhoto');
+    const downloadLink = document.getElementById('downloadLink');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        debugLog('📷 Cámara activada.');
+      })
+      .catch(error => {
+        debugLog('❌ Error al acceder a la cámara: ' + error.message);
+      });
+
+    takePhoto.onclick = () => {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      photo.src = dataUrl;
+      downloadLink.href = dataUrl;
+      downloadLink.style.display = 'inline-block';
+      debugLog('📸 Foto tomada.');
     };
   </script>
 </body>
