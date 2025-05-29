@@ -134,32 +134,46 @@
     };
 
     // 📷 CÁMARA
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const photo = document.getElementById('photo');
-    const takePhoto = document.getElementById('takePhoto');
-    const downloadLink = document.getElementById('downloadLink');
+      const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const photo = document.getElementById('photo');
+  const takePhoto = document.getElementById('takePhoto');
+  const downloadLink = document.getElementById('downloadLink');
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        video.srcObject = stream;
-        debugLog('📷 Cámara activada.');
-      })
-      .catch(error => {
-        debugLog('❌ Error al acceder a la cámara: ' + error.message);
-      });
+  debugLog('📸 Intentando acceder a la cámara...');
+  console.log('📸 Solicitud de cámara iniciada...');
 
-    takePhoto.onclick = () => {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      console.log('✅ Cámara activada, stream obtenido:', stream);
+      debugLog('✅ Cámara activada.');
+      video.srcObject = stream;
+    })
+    .catch(error => {
+      console.log('❌ Error al acceder a la cámara:', error);
+      debugLog(`❌ Error al acceder a la cámara: ${error.name} - ${error.message}`);
+    });
+
+  takePhoto.onclick = () => {
+    try {
       const context = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
+      console.log('🖼 Tomando foto con dimensiones:', canvas.width, 'x', canvas.height);
+
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/png');
       photo.src = dataUrl;
       downloadLink.href = dataUrl;
       downloadLink.style.display = 'inline-block';
       debugLog('📸 Foto tomada.');
-    };
+      console.log('📷 Foto generada y asignada como src.');
+    } catch (e) {
+      console.log('❌ Error al tomar la foto:', e);
+      debugLog(`❌ Error al tomar la foto: ${e.message}`);
+    }
+  };
   </script>
 </body>
 </html>
