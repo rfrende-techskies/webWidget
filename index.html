@@ -81,6 +81,11 @@
   <img id="photo" alt="Foto tomada" />
   <a id="downloadLink" style="display: none;" download="foto.png">⬇️ Descargar foto</a>
 
+  <h1>📷 Cámara nativa + input </h1>
+  <input type="file" accept="image/*" capture="environment" id="fileInput" />
+  <img id="preview" style="max-width: 100%; margin-top: 10px;" />
+
+
   <div id="debug">🧠 <strong>Logs:</strong></div>
 
   <script>
@@ -174,6 +179,18 @@
       debugLog(`❌ Error al tomar la foto: ${e.message}`);
     }
   };
+  // segunda opcion, input + acceso galeria 
+  document.getElementById('fileInput').addEventListener('change', function (event) {
+  const file = event.target.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    document.getElementById('preview').src = url;
+    debugLog('📷 Imagen cargada desde el dispositivo.');
+  } else {
+    debugLog('⚠️ No se seleccionó ninguna imagen.');
+  }
+});
+
   </script>
 </body>
 </html>
